@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  namespace: sheetapp
+  labels:
+    app: frontend
+spec:
+  replicas: 2 # Start with 2 replicas for availability
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          # Use the production-ready Nginx image built by the multi-stage Dockerfile
+          image: your-dockerhub-username/react-frontend:latest # <-- REPLACE with your actual frontend image
+          imagePullPolicy: Always # Or IfNotPresent
+          ports:
+            - containerPort: 80 # Nginx runs on port 80 by default
+              name: http
+          # Define resource requests and limits for the frontend server
+          resources:
+            requests:
+              cpu: "100m" # Nginx is generally lightweight
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+          # Basic readiness/liveness probe for Nginx
+          readinessProbe:
+            httpGet:
+              path: /index.html # Check if the main HTML file is served
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /index.html
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20

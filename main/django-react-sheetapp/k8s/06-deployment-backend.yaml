@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: sheetapp
+  labels:
+    app: backend
+spec:
+  replicas: 2 # Start with 2 replicas for availability, adjust based on load
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      # Init container to run migrations before the main app starts
+      initContainers:
+        - name: migrate
+          image: your-dockerhub-username/django-backend:latest # <-- REPLACE with your actual backend image
+          imagePullPolicy: Always # Or IfNotPresent
+          command: ['python', 'manage.py', 'migrate', '--noinput']
+          envFrom:
+            - configMapRef:
+                name: sheetapp-config
+            - secretRef:
+                name: sheetapp-secrets
+          # Ensure resources are limited for init containers too
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+      # Main application container
+      containers:
+        - name: backend
+          image: your-dockerhub-username/django-backend:latest # <-- REPLACE with your actual backend image
+          imagePullPolicy: Always # Or IfNotPresent
+          # Command for production server (e.g., Gunicorn)
+          command: ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "project_config.wsgi:application"]
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: sheetapp-config # Mount all keys from ConfigMap as env vars
+            - secretRef:
+                name: sheetapp-secrets # Mount all keys from Secret as env vars
+          # Define resource requests and limits for production
+          resources:
+            requests:
+              cpu: "200m"  # 0.2 vCPU
+              memory: "256Mi"
+            limits:
+              cpu: "500m"  # 0.5 vCPU
+              memory: "512Mi"
+          # Readiness and Liveness probes are crucial
+          readinessProbe:
+            httpGet:
+              path: /api/healthz # Example: Add a simple health check endpoint to your Django app
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/healthz # Use the same health check or a different one
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3

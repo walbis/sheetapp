@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sheetapp-db-service # This name is used as DB_HOST in ConfigMap
+  namespace: sheetapp
+spec:
+  selector:
+    app: postgres # Selects pods with the label 'app: postgres'
+  ports:
+    - protocol: TCP
+      port: 5432       # Port the service listens on
+      targetPort: 5432 # Port the pods listen on (from deployment's containerPort)
+  type: ClusterIP   # Expose the service only within the cluster

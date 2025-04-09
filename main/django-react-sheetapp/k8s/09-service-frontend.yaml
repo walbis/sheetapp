@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: sheetapp
+spec:
+  selector:
+    app: frontend # Selects pods from the frontend deployment
+  ports:
+    - protocol: TCP
+      port: 80       # Service listens on port 80
+      targetPort: 80 # Pods (Nginx) listen on port 80
+  type: ClusterIP   # Expose only within the cluster

@@ -1,0 +1,107 @@
+version: '3.8' # Define the compose file version
+
+services:
+  # --- PostgreSQL Database Service ---
+  db:
+    image: postgres:15-alpine # Use official PostgreSQL 15 image on Alpine Linux
+    container_name: sheetapp_db # Assign a specific container name (optional)
+    volumes:
+      # Mount a named volume to persist database data across container restarts/recreations
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      # Load database credentials and name from the .env file
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    # ports: # Only expose the port to the host machine if direct external access is needed (e.g., for DB client)
+    #   - "5432:5432"
+    networks:
+      # Connect this service to the custom bridge network
+      - app-network
+    # Health check to ensure the database is ready before dependent services start
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"] # Command to check DB readiness
+      interval: 5s    # Check every 5 seconds
+      timeout: 5s     # Wait up to 5 seconds for the check to complete
+      retries: 5      # Retry up to 5 times before marking as unhealthy
+
+  # --- Django Backend Service ---
+  backend:
+    build: ./backend # Build the image using Dockerfile in the ./backend directory
+    container_name: sheetapp_backend # Assign a specific container name (optional)
+    # Command to run the Django development server inside the container
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      # Mount the backend source code directory into the container for live code changes
+      # Changes made on the host will reflect inside the container without rebuilding
+      - ./backend:/code
+    ports:
+      # Map port 8000 on the host machine to port 8000 inside the container
+      - "8000:8000"
+    environment:
+      # Pass environment variables from the .env file to the backend container
+      - DB_ENGINE=${DB_ENGINE}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST} # Should be the service name of the database ('db')
+      - DB_PORT=${DB_PORT}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DEBUG=${DEBUG}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - PYTHONUNBUFFERED=1 # Ensure Python logs output immediately (good for Docker logs)
+    depends_on:
+      # Specify that the backend service depends on the database service
+      db:
+        condition: service_healthy # Wait until the 'db' service passes its health check
+    networks:
+      # Connect this service to the custom bridge network
+      - app-network
+
+  # --- React Frontend Service (Development Setup) ---
+  frontend:
+    build:
+      context: ./frontend # Build the image using Dockerfile in the ./frontend directory
+      # target: builder  # NO LONGER NEEDED with simplified Dockerfile (Approach 1)
+    container_name: sheetapp_frontend # Assign a specific container name (optional)
+    # Mount the frontend source code directory into the container for hot-reloading
+    volumes:
+      - ./frontend:/app
+      # Create an anonymous volume for node_modules inside the container.
+      # This prevents the host's node_modules (if any) from overwriting the one
+      # installed inside the container during the Docker build process.
+      - /app/node_modules
+    ports:
+      # Map port 3000 on the host to port 3000 inside the container (React Dev Server default)
+      - "3000:3000"
+    environment:
+      # Environment variables needed by the React development server and application
+      - CHOKIDAR_USEPOLLING=true # Often helps with file watching/hot-reloading inside Docker
+      - REACT_APP_API_URL=${REACT_APP_API_URL} # Make backend API URL available to React app
+      - NODE_ENV=development # Ensure react-scripts runs in development mode
+      # WDS_SOCKET_PORT=0 # Sometimes needed to fix WebSocket issues in certain Docker setups
+    depends_on:
+      # Frontend depends on the backend being available (though it might start before backend API fully ready)
+      - backend
+    networks:
+      # Connect this service to the custom bridge network
+      - app-network
+    # Keep stdin open and allocate a pseudo-TTY. This helps keep the
+    # interactive 'npm start' process running correctly within the container.
+    stdin_open: true
+    tty: true
+    # The command to run inside the container to start the React development server
+    # This overrides the default CMD in the frontend/Dockerfile
+    command: npm start
+
+# --- Define Networks ---
+networks:
+  # Create a custom bridge network for services to communicate using service names (e.g., 'db', 'backend')
+  app-network:
+    driver: bridge
+
+# --- Define Named Volumes ---
+volumes:
+  # Define the named volume used by the PostgreSQL service for data persistence
+  postgres_data:
+    # driver: local # Usually default, can be specified if needed

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: sheetapp
+spec:
+  accessModes:
+    - ReadWriteOnce # Standard for single database pod RWO access
+  resources:
+    requests:
+      storage: 5Gi # Request 5 GB of storage, adjust as needed
+  # storageClassName: "your-storage-class" # Optional: specify if not using default StorageClass

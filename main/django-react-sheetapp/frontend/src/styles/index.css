@@ -1,0 +1,151 @@
+/* Import Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+
+/* Inject Tailwind's base, components, and utilities styles */
+/* These provide the foundation and utility classes */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Define root CSS variables for theming */
+@layer base {
+    /* Light Theme Variables (Default) */
+    :root {
+        --main-color: #2979ff; /* Material Blue A400 */
+        --font-color: #212121; /* Material Grey 900 */
+        --bg-color: #ffffff; /* White */
+        --border-size-value: 1px; /* Use a plain value for calc/usage */
+        --border-size: var(--border-size-value); /* CSS variable alias */
+        --table-border-color: #e0e0e0; /* Material Grey 300 */
+        --hover-bg: #e3f2fd; /* Material Blue 50 */
+        --modal-bg-overlay: rgba(0, 0, 0, 0.5); /* Modal backdrop */
+        --link-color: var(--main-color);
+        /* Status Colors (Light) */
+        --status-not-started: #d32f2f; /* Material Red 700 */
+        --status-in-progress: #ff9800; /* Material Orange 500 */
+        --status-completed: #4caf50; /* Material Green 500 */
+    }
+
+    /* Dark Theme Variables */
+    [data-theme="dark"] {
+        --main-color: #90caf9; /* Material Blue 200 */
+        --font-color: #e0e0e0; /* Material Grey 300 */
+        --bg-color: #1e1e1e; /* Slightly lighter dark */
+        /* Keep border size consistent */
+        --table-border-color: #424242; /* Material Grey 800 */
+        --hover-bg: #313131; /* Darker Hover */
+        --modal-bg-overlay: rgba(0, 0, 0, 0.7);
+        --link-color: var(--main-color);
+        /* Status Colors (Dark) */
+        --status-not-started: #ef9a9a; /* Material Red 200 */
+        --status-in-progress: #ffcc80; /* Material Orange 200 */
+        --status-completed: #a5d6a7; /* Material Green 200 */
+    }
+
+    /* Apply base styles to the body */
+    body {
+        @apply font-mono bg-background text-font-color; /* Use CSS variables with Tailwind */
+        margin: 0;
+        height: 100vh;
+        overflow: hidden; /* Prevent body scroll, handle scroll within layout containers */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Ensure root element takes full height for grid layout */
+    html, body, #root {
+        height: 100%;
+    }
+
+    /* Apply border size variable to Tailwind border utilities */
+    .border { border-width: var(--border-size); }
+    .border-t { border-top-width: var(--border-size); }
+    .border-b { border-bottom-width: var(--border-size); }
+    .border-l { border-left-width: var(--border-size); }
+    .border-r { border-right-width: var(--border-size); }
+
+    /* Apply border color variable */
+    .border-table-border { border-color: var(--table-border-color); }
+
+    /* Basic focus outline using primary color */
+     *:focus-visible {
+         @apply outline-none ring-2 ring-offset-2 ring-offset-background ring-primary;
+     }
+     /* Remove default button focus outline if using ring */
+     button:focus {
+         outline: none;
+     }
+
+}
+
+
+/* Custom component styles (can add more complex styles here) */
+@layer components {
+    /* Base styles for table cells using CSS variables */
+    .table-cell-bordered {
+        border-width: var(--border-size);
+        border-color: var(--table-border-color);
+    }
+
+    /* Active state for Top Menu items */
+    .top-menu-item.active {
+       /* Example active style using variables */
+       @apply text-primary font-semibold bg-hover-bg;
+    }
+
+     /* Status Select Component Styles */
+     .status-select {
+        /* Use variables for colors */
+        @apply w-full h-full p-1 border-none bg-transparent font-mono text-sm appearance-none cursor-pointer font-bold focus:outline-none;
+        color: var(--status-color); /* Dynamically set color */
+     }
+     .status-select:disabled {
+         @apply opacity-70 cursor-not-allowed;
+     }
+      /* Define CSS variables based on data attribute for dynamic coloring */
+      .status-select[data-status="NOT_STARTED"] { --status-color: var(--status-not-started); }
+      .status-select[data-status="IN_PROGRESS"] { --status-color: var(--status-in-progress); }
+      .status-select[data-status="COMPLETED"] { --status-color: var(--status-completed); }
+
+      /* Style options within the select (limited browser support) */
+      .status-select option {
+           @apply bg-background text-font-color font-normal;
+      }
+
+     /* Style placeholder text color for dark mode */
+     .dark\:placeholder-gray-500::placeholder {
+          color: #6b7280; /* Adjust dark mode placeholder color */
+      }
+}
+
+/* Global layout styles (can be handled by components too) */
+/* Example: Define the main application grid */
+#root {
+    height: 100vh;
+    display: grid;
+    /* 60px fixed height for Topbar, remaining space for content */
+    grid-template-rows: 60px 1fr;
+}
+
+/* Ensure smooth scrolling on touch devices */
+.main-content, .sidebar ul {
+     -webkit-overflow-scrolling: touch;
+}
+
+/* Custom scrollbar styling (optional, webkit browsers only) */
+/* Works in Chrome, Edge, Safari */
+::-webkit-scrollbar {
+  width: 8px;  /* Width of vertical scrollbar */
+  height: 8px; /* Height of horizontal scrollbar */
+}
+::-webkit-scrollbar-track {
+  background: transparent; /* Make track invisible */
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--table-border-color); /* Color of the scroll thumb */
+  border-radius: 10px; /* Round the corners */
+  border: 2px solid var(--bg-color); /* Creates padding around thumb */
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--main-color); /* Darker thumb on hover */
+}
